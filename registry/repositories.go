@@ -1,5 +1,7 @@
 package registry
 
+import "strings"
+
 type repositoriesResponse struct {
 	Repositories []string `json:"repositories"`
 }
@@ -12,6 +14,9 @@ func (registry *Registry) Repositories() ([]string, error) {
 	for {
 		registry.Logf("registry.repositories url=%s", url)
 		url, err = registry.getPaginatedJSON(url, &response)
+		if !strings.HasPrefix(url, registry.URL) {
+			url = registry.URL + url
+		}
 		switch err {
 		case ErrNoMorePages:
 			repos = append(repos, response.Repositories...)
