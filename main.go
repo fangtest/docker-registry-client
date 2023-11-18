@@ -1,6 +1,10 @@
 package main
 
-import "github.com/fangtest/docker-registry-client/registry"
+import (
+	"encoding/json"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/fangtest/docker-registry-client/registry"
+)
 
 func main() {
 	url := "http://192.168.12.144:5000"
@@ -16,35 +20,52 @@ func main() {
 	}
 	println(repositories)
 
-	tags, err := hub.Tags("emc")
+	tags, err := hub.Tags("app-center-ws")
 	if err != nil {
 
 	}
 	println(tags)
 
-	manifest, err := hub.Manifest("emc", "latest")
+	manifest, err := hub.Manifest("app-center-ws", "latest-origin-master-5a105bafbc-20233007153043-26")
 	if err != nil {
 
 	}
 	println(manifest)
 
-	manifestv2, err := hub.ManifestV2("emc", "latest")
+	time := buildCreateTime(manifest)
+	println(time)
+
+	manifestv2, sha256, err := hub.ManifestV2("app-center-ws", "latest-origin-master-5a105bafbc-20233007153043-26")
 	if err != nil {
 
 	}
 	println(manifestv2)
+	println(sha256)
 
-	digest, err := hub.ManifestDigest("emc", "latest")
+	digest, err := hub.ManifestDigest("app-center-ws", "latest-origin-master-5a105bafbc-20233007153043-26")
 	if err != nil {
 
 	}
 	println(digest)
 
-	//hub.
-	//
-	//metadata, err := hub.HasBlob("emc", "659271073e878d41687ca602743bed7733625ff41f009b4bfb62f1f7d5908bf4")
-	//if err != nil {
-	//
-	//}
-	//metadata.Descriptor()
+	metadata, err := hub.BlobMetadata("app-center-ws", "latest-origin-master-5a105bafbc-20233007153043-26")
+	if err != nil {
+
+	}
+	println(metadata.Size)
+
+}
+
+type ImageManifest struct {
+	Created string `json:"created"`
+}
+
+func buildCreateTime(manifest *schema1.SignedManifest) string {
+	compatibility := manifest.History[0].V1Compatibility
+	imageManifest := ImageManifest{}
+
+	if err := json.Unmarshal([]byte(compatibility), &imageManifest); err != nil {
+		return ""
+	}
+	return imageManifest.Created
 }

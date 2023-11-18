@@ -41,33 +41,35 @@ func (registry *Registry) Manifest(repository, reference string) (*schema1.Signe
 	return signedManifest, nil
 }
 
-func (registry *Registry) ManifestV2(repository, reference string) (*schema2.DeserializedManifest, error) {
+func (registry *Registry) ManifestV2(repository, reference string) (*schema2.DeserializedManifest, string, error) {
 	url := registry.url("/v2/%s/manifests/%s", repository, reference)
 	registry.Logf("registry.manifest.get url=%s repository=%s reference=%s", url, repository, reference)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	req.Header.Set("Accept", schema2.MediaTypeManifest)
 	resp, err := registry.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	deserialized := &schema2.DeserializedManifest{}
 	err = deserialized.UnmarshalJSON(body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return deserialized, nil
+	sha256 := getSha256(resp)
+
+	return deserialized, sha256, nil
 }
 
 func (registry *Registry) ManifestDigest(repository, reference string) (digest.Digest, error) {
@@ -123,4 +125,8 @@ func (registry *Registry) PutManifest(repository, reference string, manifest dis
 		defer resp.Body.Close()
 	}
 	return err
+}
+
+func getSha256(resp *http.Response) string {
+	return resp.Header[http.CanonicalHeaderKey("Docker-Content-Digest")][0]
 }
